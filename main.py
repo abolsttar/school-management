@@ -57,6 +57,8 @@ class Settings(BaseModel):
     twilio_auth_token: Optional[str] = Field(default=os.getenv("TWILIO_AUTH_TOKEN"))
     twilio_from_number: Optional[str] = Field(default=os.getenv("TWILIO_FROM_NUMBER"))
     max_recent_requests: int = Field(default=100)
+    rate_limit_per_minute: int = Field(default=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")))
+    rate_limit_per_hour: int = Field(default=int(os.getenv("RATE_LIMIT_PER_HOUR", "1000")))
     app_name: str = Field(default="School Management System")
     app_version: str = Field(default="2.0.0")
 
@@ -305,7 +307,64 @@ app = FastAPI(
 
 
 @app.middleware("http")
+async def security_middleware(request: StarletteRequest, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    
+    return response
+
+
+@app.middleware("http")
+async def rate_limiting_middleware(request: StarletteRequest, call_next):
+    """Rate limiting middleware using Redis."""
+    # Skip rate limiting for health checks and docs
+    if request.url.path in ["/health", "/readiness", "/docs", "/openapi.json", "/redoc", "/api/docs", "/api/redoc"]:
+        return await call_next(request)
+    
+    if redis_client is not None:
+        rc = redis_client
+        client_ip = request.client.host if request.client else "unknown"
+        now = int(time.time())
+        
+        # Per-minute rate limit
+        minute_key = f"rate_limit:minute:{client_ip}:{now // 60}"
+        minute_count = await rc.incr(minute_key)
+        await rc.expire(minute_key, 60)
+        
+        if minute_count > settings.rate_limit_per_minute:
+            logger.warning(f"Rate limit exceeded for IP {client_ip}: {minute_count} requests/minute")
+            return Response(
+                content=json.dumps({"detail": "Rate limit exceeded. Please try again later."}),
+                status_code=429,
+                headers={"Retry-After": "60", "Content-Type": "application/json"}
+            )
+        
+        # Per-hour rate limit
+        hour_key = f"rate_limit:hour:{client_ip}:{now // 3600}"
+        hour_count = await rc.incr(hour_key)
+        await rc.expire(hour_key, 3600)
+        
+        if hour_count > settings.rate_limit_per_hour:
+            logger.warning(f"Hourly rate limit exceeded for IP {client_ip}: {hour_count} requests/hour")
+            return Response(
+                content=json.dumps({"detail": "Hourly rate limit exceeded. Please try again later."}),
+                status_code=429,
+                headers={"Retry-After": "3600", "Content-Type": "application/json"}
+            )
+    
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def usage_tracking_middleware(request: StarletteRequest, call_next):
+    """Track API usage statistics."""
     start_time = time.time()
     
     if request.url.path in ["/health", "/readiness", "/docs", "/openapi.json", "/redoc"]:
