@@ -796,7 +796,15 @@ async def admin_login(request: Request, api_key: str = Form(...)):
         )
     
     resp = RedirectResponse(url="/admin", status_code=302)
-    resp.set_cookie("admin_api_key", api_key, httponly=True, samesite="lax")
+    resp.set_cookie("admin_api_key", api_key, httponly=True, samesite="lax", max_age=86400)
+    return resp
+
+
+@app.post("/admin/logout")
+async def admin_logout():
+    """Logout admin user and clear session"""
+    resp = RedirectResponse(url="/admin/login", status_code=302)
+    resp.delete_cookie("admin_api_key")
     return resp
 
 
@@ -918,15 +926,22 @@ async def admin_mark_attendance(request: Request, background_tasks: BackgroundTa
     form = await request.form()
     date = str(form.get("date") or "")
     
+    students_list = await get_students_list(db, cache)
+    student_code_map = {str(s.id): s.student_code for s in students_list if hasattr(s, 'id')}
+    student_code_map.update({s.student_code: s.student_code for s in students_list})
+    
     for key, value in form.items():
         if not key.startswith("status_"):
             continue
         
-        student_id = key[len("status_"):]
+        student_key = key[len("status_"):]
+        # Try to find student_code from map, otherwise use the key itself
+        student_code = student_code_map.get(student_key, student_key)
         status = str(value)
+        
         payload = AttendanceMarkIn(
-            student_id=student_id,
-            student_code=student_id,
+            student_id=student_code,
+            student_code=student_code,
             date=date,
             status=status,
             note=None,

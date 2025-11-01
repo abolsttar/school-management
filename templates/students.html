@@ -5,120 +5,403 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Students - School Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        
+        .student-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        }
+        .student-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .avatar-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .floating-btn {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <nav class="bg-white shadow-sm border-b">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-md border-b border-gray-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
-                <h1 class="text-xl font-bold text-indigo-600">School Management System</h1>
-                <div class="flex gap-4 items-center">
-                    <a href="/admin" class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
-                    <a href="/admin/attendance" class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Attendance</a>
-                    <a href="/admin/students" class="text-indigo-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-indigo-600">Students</a>
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg">
+                        <i class="fas fa-users text-white"></i>
+                    </div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Students</h1>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <a href="/admin" class="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg text-sm transition">Dashboard</a>
+                    <a href="/admin/attendance" class="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg text-sm transition">Attendance</a>
+                    <a href="/admin/students" class="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium">Students</a>
+                    <a href="/admin/stats" class="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg text-sm transition">Reports</a>
+                    <form method="post" action="/admin/logout" class="inline">
+                        <button type="submit" class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm transition">Logout</button>
+                    </form>
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div class="mb-6 flex justify-between items-center">
+    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-gray-900">Students Management</h2>
-                <p class="text-gray-600 mt-1">Total: {{ students|length }} students</p>
+                <h2 class="text-4xl font-bold text-gray-900 mb-2">Student Directory</h2>
+                <p class="text-gray-600 flex items-center">
+                    <i class="fas fa-users mr-2 text-blue-600"></i>
+                    <span class="font-semibold text-blue-600 mx-1">{{ students|length }}</span> students enrolled
+                </p>
             </div>
             <button 
-                onclick="document.getElementById('addStudentModal').classList.remove('hidden')"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium shadow-sm"
-            >
-                Add Student
+                onclick="openAddModal()"
+                class="floating-btn bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition transform hover:scale-105 flex items-center gap-2">
+                <i class="fas fa-plus-circle"></i>Add New Student
             </button>
         </div>
 
-        <div class="bg-white shadow rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Code</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for s in students %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ s.student_code }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ s.first_name }} {{ s.last_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ s.grade_level or 'N/A' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ s.phone or 'N/A' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="/admin/students/{{ s.student_code }}" class="text-indigo-600 hover:text-indigo-900">View</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Message Container -->
+        <div id="messageContainer" class="mb-6 hidden"></div>
+
+        <!-- Students Grid -->
+        {% if students|length == 0 %}
+        <div class="bg-white rounded-2xl shadow-lg p-12 text-center">
+            <div class="inline-block bg-gradient-to-br from-blue-100 to-indigo-100 p-6 rounded-full mb-4">
+                <i class="fas fa-user-plus text-6xl text-blue-600"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">No Students Yet</h3>
+            <p class="text-gray-600 mb-6">Start by adding your first student to the system</p>
+            <button onclick="openAddModal()" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition">
+                <i class="fas fa-plus mr-2"></i>Add First Student
+            </button>
         </div>
+        {% else %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for s in students %}
+            <div class="student-card rounded-2xl p-6 border-2 border-gray-100 shadow-lg hover:border-blue-300">
+                <!-- Card Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="avatar-gradient w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                            {{ s.first_name[0] if s.first_name else 'S' }}
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-900">{{ s.first_name }} {{ s.last_name }}</h3>
+                            <p class="text-sm text-gray-500 font-mono">#{{ s.student_code }}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="viewStudent('{{ s.student_code }}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="editStudent({{ s|tojson }})" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteStudent('{{ s.student_code }}', '{{ s.first_name }} {{ s.last_name }}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-purple-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs">Grade</p>
+                            <p class="font-semibold text-gray-900">{{ s.grade_level or 'N/A' }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if s.phone %}
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-phone text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs">Phone</p>
+                            <a href="tel:{{ s.phone }}" class="font-semibold text-gray-900 hover:text-blue-600">{{ s.phone }}</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if s.email %}
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-envelope text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs">Email</p>
+                            <a href="mailto:{{ s.email }}" class="font-semibold text-gray-900 hover:text-blue-600 break-all">{{ s.email[:20] }}{% if s.email|length > 20 %}...{% endif %}</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </main>
 
-    <div id="addStudentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Student</h3>
-                <form id="addStudentForm" class="space-y-4">
+    <!-- Add/Edit Student Modal -->
+    <div id="studentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-t-2xl flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-white" id="modalTitle">Add New Student</h3>
+                <button onclick="closeModal()" class="text-white hover:bg-white/20 p-2 rounded-lg transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="studentForm" class="p-6 space-y-4">
+                <input type="hidden" id="formAction" value="add">
+                <input type="hidden" id="oldStudentCode" value="">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Student Code *</label>
-                        <input type="text" name="student_code" required class="w-full px-3 py-2 border rounded-md" />
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-id-card text-blue-600 mr-1"></i>Student Code *
+                        </label>
+                        <input type="text" id="student_code" name="student_code" required 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                        <input type="text" name="first_name" required class="w-full px-3 py-2 border rounded-md" />
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-graduation-cap text-purple-600 mr-1"></i>Grade Level
+                        </label>
+                        <input type="text" id="grade_level" name="grade_level"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-user text-green-600 mr-1"></i>First Name *
+                        </label>
+                        <input type="text" id="first_name" name="first_name" required
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                        <input type="text" name="last_name" required class="w-full px-3 py-2 border rounded-md" />
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-user text-green-600 mr-1"></i>Last Name *
+                        </label>
+                        <input type="text" id="last_name" name="last_name" required
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
-                        <input type="text" name="grade_level" class="w-full px-3 py-2 border rounded-md" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input type="tel" name="phone" class="w-full px-3 py-2 border rounded-md" />
-                    </div>
-                    <div class="flex gap-3">
-                        <button type="submit" class="flex-1 bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700">Add</button>
-                        <button type="button" onclick="document.getElementById('addStudentModal').classList.add('hidden')" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400">Cancel</button>
-                    </div>
-                </form>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-blue-600 mr-1"></i>Email
+                    </label>
+                    <input type="email" id="email" name="email"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-phone text-green-600 mr-1"></i>Phone
+                    </label>
+                    <input type="tel" id="phone" name="phone"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl hover:shadow-lg font-semibold transition">
+                        <i class="fas fa-save mr-2"></i><span id="submitText">Add Student</span>
+                    </button>
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 font-semibold transition">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Student Modal -->
+    <div id="viewModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-t-2xl flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-white">Student Details</h3>
+                <button onclick="closeViewModal()" class="text-white hover:bg-white/20 p-2 rounded-lg transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="studentDetails" class="p-6">
+                <!-- Details will be loaded here -->
             </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
+        function openAddModal() {
+            document.getElementById('studentModal').classList.remove('hidden');
+            document.getElementById('modalTitle').textContent = 'Add New Student';
+            document.getElementById('formAction').value = 'add';
+            document.getElementById('submitText').textContent = 'Add Student';
+            document.getElementById('studentForm').reset();
+            document.getElementById('oldStudentCode').value = '';
+        }
+
+        function editStudent(student) {
+            document.getElementById('studentModal').classList.remove('hidden');
+            document.getElementById('modalTitle').textContent = 'Edit Student';
+            document.getElementById('formAction').value = 'edit';
+            document.getElementById('submitText').textContent = 'Update Student';
+            document.getElementById('oldStudentCode').value = student.student_code;
+            
+            document.getElementById('student_code').value = student.student_code || '';
+            document.getElementById('first_name').value = student.first_name || '';
+            document.getElementById('last_name').value = student.last_name || '';
+            document.getElementById('email').value = student.email || '';
+            document.getElementById('phone').value = student.phone || '';
+            document.getElementById('grade_level').value = student.grade_level || '';
+            document.getElementById('class_name').value = student.class_name || '';
+        }
+
+        async function viewStudent(code) {
+            try {
+                const response = await fetch(`/students/${code}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                const student = await response.json();
+                
+                const details = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl">
+                                <label class="text-sm font-semibold text-gray-600">Student Code</label>
+                                <p class="text-lg font-bold text-gray-900 mt-1">${student.student_code}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl">
+                                <label class="text-sm font-semibold text-gray-600">Grade</label>
+                                <p class="text-lg font-bold text-gray-900 mt-1">${student.grade_level || 'N/A'}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl">
+                                <label class="text-sm font-semibold text-gray-600">First Name</label>
+                                <p class="text-lg font-bold text-gray-900 mt-1">${student.first_name}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-yellow-50 to-amber-50 p-4 rounded-xl">
+                                <label class="text-sm font-semibold text-gray-600">Last Name</label>
+                                <p class="text-lg font-bold text-gray-900 mt-1">${student.last_name}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-xl">
+                                <label class="text-sm font-semibold text-gray-600">Email</label>
+                                <p class="text-lg font-bold text-gray-900 mt-1">${student.email || 'N/A'}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-xl">
+                                <label class="text-sm font-semibold text-gray-600">Phone</label>
+                                <p class="text-lg font-bold text-gray-900 mt-1">${student.phone || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button onclick="editStudent(${JSON.stringify(student)}); closeViewModal();" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl hover:shadow-lg font-semibold transition">
+                                <i class="fas fa-edit mr-2"></i>Edit
+                            </button>
+                            <button onclick="closeViewModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 font-semibold transition">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('studentDetails').innerHTML = details;
+                document.getElementById('viewModal').classList.remove('hidden');
+            } catch (error) {
+                showMessage('Error loading student details', 'error');
+            }
+        }
+
+        function deleteStudent(code, name) {
+            if (!confirm(`Are you sure you want to delete ${name} (${code})?`)) return;
+            
+            fetch(`/students/${code}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        showMessage(`Student ${name} deleted successfully`, 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showMessage('Error deleting student', 'error');
+                    }
+                })
+                .catch(error => showMessage('Error: ' + error.message, 'error'));
+        }
+
+        function closeModal() {
+            document.getElementById('studentModal').classList.add('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.add('hidden');
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const bgColor = type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800';
+            const icon = type === 'success' ? '<i class="fas fa-check-circle mr-2"></i>' : '<i class="fas fa-exclamation-circle mr-2"></i>';
+            container.className = `mb-4 ${bgColor} border-l-4 px-4 py-3 rounded-lg shadow-lg`;
+            container.innerHTML = `<span class="block sm:inline font-semibold">${icon}${message}</span>`;
+            container.classList.remove('hidden');
+            setTimeout(() => container.classList.add('hidden'), 5000);
+        }
+
+        document.getElementById('studentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
+            const action = document.getElementById('formAction').value;
+            const oldCode = document.getElementById('oldStudentCode').value;
             
             try {
-                const response = await fetch('/students', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
+                let response;
+                if (action === 'add') {
+                    response = await fetch('/students', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    response = await fetch(`/students/${oldCode}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                }
+                
+                const result = await response.json();
                 
                 if (response.ok) {
-                    window.location.reload();
+                    showMessage(action === 'add' ? 'Student added successfully' : 'Student updated successfully', 'success');
+                    closeModal();
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    alert('Error adding student');
+                    showMessage(result.detail || 'Error saving student', 'error');
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                showMessage('Error: ' + error.message, 'error');
             }
         });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('studentModal');
+            const viewModal = document.getElementById('viewModal');
+            if (event.target === modal) closeModal();
+            if (event.target === viewModal) closeViewModal();
+        }
     </script>
 </body>
 </html>
-
