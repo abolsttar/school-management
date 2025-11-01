@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:4.4
+    container_name: school_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: school_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - school_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: school_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - school_network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  school_network:
+    driver: bridge
+
